@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title></title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.4.3/css/bulma.min.css">
+    <style media="screen">
+      p > span { font-weight: bold; }
+    </style>
+  </head>
+  <body>
+    <section class="hero is-primary is-bold">
+      <div class="hero-body">
+        <div class="container">
+          <h1 class="title">
+            ERC20 Playground
+          </h1>
+          <h2 class="subtitle">
+            FTW 2017 Hackathon
+          </h2>
+        </div>
+      </div>
+    </section>
+    <section class=main>
+      <div style="height: 50px;"></div>
+      <div class="container">
+        <!-- <p>Prerequisites: Metamask installed and set-up</p>
+        <div style="height: 30px;"></div> -->
+        <div class="content is-medium steps">
+          <h5 class=subtitle>Steps:</h5>
+          <ol>
+            <li>
+              <a href="https://faucet.rinkeby.io/">Visit Faucet</a> and get test ETHs
+            </li>
+            <li>
+              <button class="button deploy_contract_btn">Deploy Contract</button>
+            </li>
+            <li>
+              <input type="text"  class="input recipient_address" name="recipient_address" value="" placeholder="0x....." style="width: 300px;">
+
+              <button class="button send_tokens_btn">Send Tokens</button>
+            </li>
+          </ol>
+          <div style="height: 30px;"></div>
+
+          <h5 class=subtitle>Data:</h5>
+          <p>Balance: <span class=balance>...</span> wei</p>
+          <p>Deployed contract address: <span class=contract_address>0x...</span></p>
+          <p>Token balance: <span class=token_balance>...</span> <span class=token_symbol></span></p>
+        </div>
+
+        <div class="is-small" style="color: grey; margin-top: 200px">
+          Disclaimer: Applied Blockchain and Fintech Week® are not endorsing the creation of ICOs and ethereum token sales as there are legal risks associated with it (you will probably face legal charges) - This code sample is made just to explore the technical possibilities of developing applications on top of the Ethereum platform.
+        </div>
+
+      </div>
+    </section>
+
+    <!-- If you don't want to use metamask you can use a local node and web3.js metamask will inject web3 for you so you don't need to do this: <script src="https://cdn.rawgit.com/ethereum/web3.js/develop/dist/web3.min.js" charset="utf-8"></script> -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bluebird/3.5.0/bluebird.min.js" charset="utf-8"></script>
+    <!-- if your browser doesn't supports async/await you may want to use https://github.com/yortus/asyncawait -  -->
+    <script type="text/javascript">
+
+      // PLEASE NOTE that the minimum Chrome version to run this code is 55 (async/await)
+
+      // Token contract code used for this example: https://gist.github.com/makevoid/ec7f9d94fdeb78d06cea48a17a117213
+
+      // Any ERC20 Ethereum Standard Token will be compatible with this script.
+
+      var d = document
+      var c = console
+      var g = window // global scope shortcut
+      g.bytecode = null
+      g.abi = null
+      g.contractAddress = null
+      g.tokenContract = null
+
+      var main = async function() {
+        // setup web3
+        if (typeof web3 !== 'undefined') {
+          // connect to metamask (preferred)
+          g.web3 = new Web3(web3.currentProvider)
+        } else {
+          // connect to your local geth or parity node instead
+          g.web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"))
+        }
+        g.eth = g.web3.eth
+
+        // setup functions to be called via await (simpler than using callbacks)
+        var getCoinbase = Promise.promisify(g.eth.getCoinbase)
+        g.getBalance    = Promise.promisify(g.eth.getBalance)
+
+        // get your first ethereum address (coinbase address)
+        g.coinbase = await getCoinbase()
+
+        // token contract class
+        var TokenContract = g.eth.contract(g.abi)
+        g.TokenContract   = TokenContract
+
+        // token contract instance
+        if (localStorage.ftw_token_address) {
+          g.tokenContract = TokenContract.at(localStorage.ftw_token_address)
+        }
+
+        // all actions
+        bindSendTokensBtn()
+        bindDeployContract()
+        loadAddress()
+        updateBalance()
+        updateTokenBalance()
+      }
+
+      // calls eth.getBalance (gets balance in weis - "micro" ethers)
+      var updateBalance = async function() {
+        var balance = await g.getBalance(g.coinbase)
+        d.querySelector(".balance").innerHTML = balance
+      }
+
+      // calls token.balanceOf (token balance of a specific address)
+      var updateTokenBalance = async function() {
+        var balanceOf = Promise.promisify(g.tokenContract.balanceOf)
+        var symbol    = Promise.promisify(g.tokenContract.symbol)
+
+        var balance = await balanceOf(g.coinbase) // in this case the address is your current metamask address (coinbase)
+        var sym     = await symbol()
+
+        var tokenBalance = d.querySelector(".token_balance")
+        var tokenSymbol  = d.querySelector(".token_symbol")
+        tokenBalance.innerHTML = balance
+        tokenSymbol.innerHTML  = sym
+      }
+
+      var loadAddress = function () {
+        // loads address from local storage if you have already deployed a token contract address with this browser "user/account"
+        var address = localStorage.ftw_token_address
+        if (address) {
+          g.contractAddress = address
+          var addressElem = d.querySelector(".contract_address")
+          addressElem.innerHTML = address
+          g.tokenContract = g.TokenContract.at(localStorage.ftw_token_address)
+        }
+      }
+
+      // triggers the creation of a token contract
+      var deployContract = async function() {
+        g.TokenContract.new([], {
+          data: g.bytecode,
+          from: g.coinbase,
+          gas:  1000000
+        }, contractDeploymentCallback)
+      }
+
+      // this function will be called twice so it wasn't possible to promisify-it
+      // the second time you get this callback your token contract will be likely to be deployed already and you will get the address of it
+      var contractDeploymentCallback = function(err, resp) {
+        if (err) c.error(err)
+        var address = resp.address
+        var addressElem = d.querySelector(".contract_address")
+        addressElem.innerHTML = "Waiting for the transaction to be confirmed.... (can take up to a minute)"
+
+        if (address) {
+          addressElem.innerHTML = address
+          // we save the address in the local storage so we can point to the same contract after a browser refresh
+          localStorage.ftw_token_address = address
+          g.contractAddress = address
+        }
+      }
+
+      // this is the first time we actually do a sendTransaction call (a standard ethereum transaction)
+      // here we call the token contract method `transfer`
+      var sendTokens = async function() {
+        var recipientElem = d.querySelector(".recipient_address")
+        var recipient = recipientElem.value
+
+        var setNumber = Promise.promisify(g.tokenContract.setNumber)
+
+        var tokenTransferAmount = 100 // FIXME" hardcoded amount, in a real app you probably want to specify the amount transfered
+
+        var result = await setNumber(recipient)
+        c.log(result)
+      }
+
+      var bindSendTokensBtn = function() {
+        var sendTokensBtn = d.querySelector(".send_tokens_btn")
+        sendTokensBtn.addEventListener("click", sendTokens)
+      }
+
+      var bindDeployContract = function() {
+        var deployBtn = d.querySelector(".deploy_contract_btn")
+        deployBtn.addEventListener("click", deployContract)
+      }
+
+
+      window.addEventListener('load', main)
+
+      // long (but important) variables are defined here (contract bytecode and contract ABI):
+
+      // bytecode is the contrect compiled in binary format, needed to "deploy" (publish) the contract to the ethereum network
+      // abi is the application binary interface, it tells your web3.js library which are the function names and its arguments to be able to call them.
+
+      // contract bytecode
+      g.bytecode = "6060604052602a600055341561001457600080fd5b5b33600160006101000a81548173ffffffffffffffffffffffffffffffffffffffff021916908373ffffffffffffffffffffffffffffffffffffffff1602179055505b5b610256806100676000396000f30060606040526000357c0100000000000000000000000000000000000000000000000000000000900463ffffffff16806302d05d3f1461005f5780633b7c4129146100b45780633fb5c1cb146100d7578063f2c9ecd8146100fa575b600080fd5b341561006a57600080fd5b610072610123565b604051808273ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff16815260200191505060405180910390f35b34156100bf57600080fd5b6100d56004808035906020019091905050610149565b005b34156100e257600080fd5b6100f860048080359060200190919050506101b5565b005b341561010557600080fd5b61010d610220565b6040518082815260200191505060405180910390f35b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1681565b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff1614156101ac57806000819055505b6101b1565b600080fd5b5b50565b600160009054906101000a900473ffffffffffffffffffffffffffffffffffffffff1673ffffffffffffffffffffffffffffffffffffffff163373ffffffffffffffffffffffffffffffffffffffff161415610217578060008190555061021c565b600080fd5b5b50565b6000805490505b905600a165627a7a72305820ba50c4985093ec504e28d69da3596f6cbaad367599a69ee76f255bb59026949f0029"
+
+      // contract abi
+      g.abi = [{"constant":true,"inputs":[],"name":"creator","outputs":[{"name":"","type":"address"}],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_number","type":"uint256"}],"name":"setNumberWithValidation","outputs":[],"payable":false,"type":"function"},{"constant":false,"inputs":[{"name":"_number","type":"uint256"}],"name":"setNumber","outputs":[],"payable":false,"type":"function"},{"constant":true,"inputs":[],"name":"getNumber","outputs":[{"name":"","type":"uint256"}],"payable":false,"type":"function"},{"inputs":[],"payable":false,"type":"constructor"}]
+
+
+
+      // contract was compiled via:  https://ethereum.github.io/browser-solidity/
+
+      // feel free to ask questions to @makevoid during Saturday about the JS code above and feel free to change it completely to however you'll like :)
+    </script>
+  </body>
+</html>
