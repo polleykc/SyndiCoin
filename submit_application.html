@@ -38,18 +38,12 @@
                      <label for="mimum_term">Minimum term (in years): </label>
                 <input type="number"  min="1" max="20" class="input mimum_term" name="mimum_term" value="" placeholder="5" style="width: 300px;">
       </li>
-      <button class="raise_request_btn" style="width: 150px; height: 40px;margin-top: 10px"">Submit Request</button>
+      <a class="button raise_request_btn" style="width: 150px; height: 40px;margin-top: 10px"" onclick="submitRequest()" id="submitRequest">Submit Request</a>
     </li>
 
         </input>
   </ol>
-          <div style="height: 30px;"></div>
 
-          <h5 class=subtitle>Data:</h5>
-          <p>Balance: <span class=balance>...</span> wei</p>
-          <p>Deployed contract address: <span class=contract_address>0x...</span></p>
-          <p>Token balance: <span class=token_balance>...</span> <span class=token_symbol></span></p>
-        </div>
 
         <div class="is-small" style="color: grey; margin-top: 200px">
           Disclaimer: Applied Blockchain and Fintech Week® are not endorsing the creation of ICOs and ethereum token sales as there are legal risks associated with it (you will probably face legal charges) - This code sample is made just to explore the technical possibilities of developing applications on top of the Ethereum platform.
@@ -62,6 +56,13 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bluebird/3.5.0/bluebird.min.js" charset="utf-8"></script>
     <!-- if your browser doesn't supports async/await you may want to use https://github.com/yortus/asyncawait -  -->
     <script type="text/javascript">
+
+      function submitRequest() {
+        document.getElementById("submitRequest").classList.add('is-loading');
+        setTimeout(function(){
+          window.location.href = "/profile_validated.html";
+        }, 3000);
+      }
 
       // PLEASE NOTE that the minimum Chrome version to run this code is 55 (async/await)
 
