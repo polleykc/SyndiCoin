@@ -19,10 +19,11 @@ contract SyndiCoinRequest{
     struct LoanRequest{
          uint amountNeeded;
          uint term;
-         string loanSeekerAddress;
+          address loanSeekerAddress;
     }
     
     LoanSeeker[] public loanSeekers;
+    LoanRequest[] public loanRequests;
     address public creator;
     uint private loanAmountNeeded;
     string companyName;
@@ -34,12 +35,11 @@ contract SyndiCoinRequest{
     }
     
       function getAllTheLoanSeekers() constant returns (string){
-        
                 return loanSeekers[0].companyName;
-
     }
     
-    
+
+//TODO - print list of loan seekers    
     //       function getAllTheLoanSeekers() constant returns (string){
     //           string names;
     //           for(uint i=0 ; i<loanSeekers.length; i++){
@@ -74,10 +74,30 @@ contract SyndiCoinRequest{
         }
     }
     
-    function raiseLoanRequest(uint _companyId, uint _loanAmountNeeded, string _supportingDocument) ifLender{
+      function validateLoanSeekerRequest(uint _companyId) returns(bool){
+          bool isInTheList;
+            for(uint i=0 ; i<loanSeekers.length; i++){
+              if(loanSeekers[i].companyId == _companyId){
+                  return true;
+              }
+             }
+    }
+    
+    function raiseLoanRequest(uint _companyId,uint _loanAmountNeeded, uint _term, string _supportingDocument) ifLender{
                if(msg.sender == creator){
-                    //   validateUser()
-        }
+                  loanRequests.length++;
+                    uint index = loanRequests.length-1;
+                    loanRequests[index].amountNeeded = _loanAmountNeeded;
+                    loanRequests[index].term =_term;
+                    
+                    if(validateLoanSeekerRequest(_companyId)){
+                       revert();
+                    }
+                    loanRequests[index].loanSeekerAddress =msg.sender;
+    
+                    
+               }
+                
     }
     
     function addLoanSeeker(uint _companyId, string _companyName) ifLender{
@@ -91,11 +111,6 @@ contract SyndiCoinRequest{
 
         }
     }
-    
-    function validateUser(){
-          if(msg.sender == 0x000000000000000000000000ca35b7d915458ef540ade6068dfe2f44e8fa733c){
-              revert();
-          }
-    }
+
     
 }
