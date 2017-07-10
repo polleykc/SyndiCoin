@@ -14,6 +14,9 @@ contract SyndiCoinRequest{
         uint lenderId;
         string lenderName;
         address lenderAddress;
+        uint term;
+        uint amountOffered;
+        uint interestRate;
     }
     
     struct LoanRequest{
@@ -24,6 +27,7 @@ contract SyndiCoinRequest{
     
     LoanSeeker[] public loanSeekers;
     LoanRequest[] public loanRequests;
+    Lender[] public lenders;
     address public creator;
     uint private loanAmountNeeded;
     string companyName;
@@ -38,16 +42,7 @@ contract SyndiCoinRequest{
                 return loanSeekers[0].companyName;
     }
     
-
-//TODO - print list of loan seekers    
-    //       function getAllTheLoanSeekers() constant returns (string){
-    //           string names;
-    //           for(uint i=0 ; i<loanSeekers.length; i++){
-    //           names=names.toSlice().concat(loanSeekers[i].companyName.toSlice());
-    //           }
-    //           return names;
-    // }
-        function getCompanyName() constant returns (string){
+    function getCompanyName() constant returns (string){
         return companyName;
     }
     
@@ -66,6 +61,15 @@ contract SyndiCoinRequest{
     }
     
       modifier ifLender(){
+        if(msg.sender == creator){
+            _;
+        }
+        else{
+           revert();
+        }
+    }
+    
+        modifier ifLoanSeeker(){
         if(msg.sender == creator){
             _;
         }
@@ -100,7 +104,7 @@ contract SyndiCoinRequest{
                 
     }
     
-    function addLoanSeeker(uint _companyId, string _companyName) ifLender{
+    function addLoanSeeker(uint _companyId, string _companyName) ifLoanSeeker{
                if(msg.sender == creator){
                     //   validateUser();
                loanSeekers.length++;
@@ -108,6 +112,20 @@ contract SyndiCoinRequest{
                     loanSeekers[index].companyName=_companyName;
                     loanSeekers[index].companyId =_companyId;
                     loanSeekers[index].userAddress =msg.sender;
+
+        }
+    }
+    
+    function addlender(  uint _lenderId, uint _amountOffered, uint _interestRate,  uint _term, string _lenderName) ifLender{
+               if(msg.sender == creator){
+                    //   validateUser();
+                    lenders.length++;
+                    uint index = lenders.length-1;
+                    lenders[index].lenderId=_lenderId;
+                    lenders[index].lenderName =_lenderName;
+                    lenders[index].term =_term;
+                    lenders[index].amountOffered =_amountOffered;
+                    lenders[index].interestRate =_interestRate;
 
         }
     }
